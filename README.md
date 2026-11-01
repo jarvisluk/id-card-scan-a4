@@ -24,25 +24,27 @@ cd ~/CodeSpace/id-card-scan-a4
 uv venv && uv pip install -e . pytest
 ```
 
+下面的命令都用 `.venv/bin/idcard-a4`；装了全局/用 `uv run` 的话直接 `idcard-a4` 也行。
+
 依赖：`pillow` `numpy` `pypdf` `reportlab`（无 scipy / 无 poppler 命令行依赖）。
 
 ## 用法
 
 ```bash
 # 正反面在同一页，正面在上
-uv run idcard-a4 正面.pdf 反面.pdf -o 输出.pdf
+.venv/bin/idcard-a4 正面.pdf 反面.pdf -o 输出.pdf
 
 # 单页 PDF 里正反面各占一页，想让第 2 页排到上面
-uv run idcard-a4 扫描件.pdf --reverse -o 输出.pdf
+.venv/bin/idcard-a4 扫描件.pdf --reverse -o 输出.pdf
 
 # 只是铺到 A4 上（不按实物大小），横向并排
-uv run idcard-a4 扫描件.pdf --mode fit --layout horizontal -o 输出.pdf
+.venv/bin/idcard-a4 扫描件.pdf --mode fit --layout horizontal -o 输出.pdf
 
 # 拍得比较松、四周有大片桌面：手动给四点（源图像素，左上/右上/右下/左下）
-uv run idcard-a4 照片.jpg -o 输出.pdf --quad 120,90,1080,60,1090,700,110,730
+.venv/bin/idcard-a4 照片.jpg -o 输出.pdf --quad 120,90,1080,60,1090,700,110,730
 
 # 排查：把检测到的四边形画出来
-uv run idcard-a4 照片.jpg -o 输出.pdf --save-quad /tmp/quad
+.venv/bin/idcard-a4 照片.jpg -o 输出.pdf --save-quad /tmp/quad
 ```
 
 ### 主要参数
