@@ -1,0 +1,47 @@
+#!/bin/sh
+# 阻止把扫描件、证件信息等敏感内容提交进仓库。
+# 启用：git config core.hooksPath .githooks
+# 确认是假数据需要绕过：git commit --no-verify
+set -u
+
+blocked=0
+files=$(git diff --cached --name-only --diff-filter=ACM)
+[ -z "$files" ] && exit 0
+
+is_binary_ext() {
+  case "$1" in
+    *.pdf|*.PDF|*.jpg|*.JPG|*.jpeg|*.png|*.PNG|*.tif|*.tiff|*.webp|*.bmp|*.heic|*.heif|*.docx|*.xlsx|*.pptx|*.zip|*.7z) return 0 ;;
+    *) return 1 ;;
+  esac
+}
+
+# 1) 二进制 / 图片 / 文档类文件一律禁止
+for f in $files; do
+  if is_binary_ext "$f"; then
+    echo "拒绝提交 ${f}: 扫描件/图片/文档禁止入库" >&2
+    blocked=1
+  fi
+done
+
+# 2) 文本内容里的证件号 / MRZ 模式
+for f in $files; do
+  [ -f "$f" ] || continue
+  if is_binary_ext "$f"; then continue; fi
+  # 18 位居民身份证号
+  if grep -nEI '[1-9][0-9]{5}(19|20)[0-9]{2}(0[1-9]|1[0-2])(0[1-9]|[12][0-9]|3[01])[0-9]{3}[0-9Xx]' "$f" >/dev/null 2>&1; then
+    echo "拒绝提交 ${f}: 疑似含 18 位身份证号" >&2
+    blocked=1
+  fi
+  # 通行证/护照 MRZ 片段（大写字母 + 长数字 + "<" 的组合）
+  if grep -nEI '[A-Z][A-Z]?[0-9]{7,}<' "$f" >/dev/null 2>&1; then
+    echo "拒绝提交 ${f}: 疑似含证件 MRZ 号码" >&2
+    blocked=1
+  fi
+done
+
+if [ "$blocked" -ne 0 ]; then
+  echo "" >&2
+  echo "本次提交已拦截。若确认是脱敏或伪造的测试数据，可用: git commit --no-verify" >&2
+  exit 1
+fi
+exit 0

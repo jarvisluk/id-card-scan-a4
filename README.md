@@ -94,6 +94,20 @@ tests/         # 合成图像回归测试（不依赖任何真实证件数据）
 .venv/bin/python -m pytest -q
 ```
 
+## 数据安全
+
+证件是敏感数据，仓库里**不放任何扫描件、照片和输出**：
+
+- `.gitignore` 默认忽略 `*.pdf` `*.jpg` `*.png` `*.docx` 等，以及 `samples/` `out/` 目录
+- `.githooks/pre-commit` 会拦截：图片/PDF/Office 文件，以及文本里疑似身份证号、证件 MRZ 号的内容
+- 启用钩子（每人 clone 后执行一次）：
+
+```bash
+git config core.hooksPath .githooks
+```
+
+确实需要提交脱敏/伪造的测试数据时，`git commit --no-verify` 绕过。
+
 ## 备注
 
 - 输入为**翻拍/扫描的证件照片**，默认假设卡片基本顶满画幅；四周留了大片背景请用 `--quad`。

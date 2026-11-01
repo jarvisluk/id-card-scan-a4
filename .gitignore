@@ -6,10 +6,32 @@ build/
 dist/
 *.egg-info/
 
-# 输出与中间产物
-*.out.pdf
-card-*.jpg
-quad-*.png
+# 扫描件 / 图片 / 文档：任何证件个人数据都不允许进仓库
+*.pdf
+*.PDF
+*.jpg
+*.JPG
+*.jpeg
+*.png
+*.PNG
+*.tif
+*.tiff
+*.webp
+*.bmp
+*.heic
+*.heif
+*.docx
+*.xlsx
+*.pptx
+*.zip
+*.7z
+
+# 样本与输出目录
+samples/
+sample/
+out/
+output/
+outputs/
 
 # macOS
 .DS_Store
