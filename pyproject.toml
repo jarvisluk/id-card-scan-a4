@@ -2,7 +2,7 @@
 name = "id-card-scan-a4"
 version = "0.1.0"
 description = "证件照片（PDF/图片）→ 透视取正 + 去背景 + 色彩统一 → 一页 A4 1:1 打印"
-requires-python = ">=3.9"
+requires-python = ">=3.10"
 dependencies = [
     "pillow>=9.5",
     "numpy>=1.23",

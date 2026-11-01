@@ -28,7 +28,7 @@ cd id-card-scan-a4
 uv venv && uv pip install -e . pytest
 ```
 
-依赖：`pillow` `numpy` `pypdf` `reportlab`（无 scipy、无 poppler 命令行依赖）。
+需要 Python 3.10+。依赖：`pillow` `numpy` `pypdf` `reportlab`（无 scipy、无 poppler 命令行依赖）。
 
 ## 用法
 

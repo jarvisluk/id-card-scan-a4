@@ -28,7 +28,7 @@ cd id-card-scan-a4
 uv venv && uv pip install -e . pytest
 ```
 
-Dependencies: `pillow`, `numpy`, `pypdf`, `reportlab`. No scipy, no poppler CLI.
+Requires Python 3.10+. Dependencies: `pillow`, `numpy`, `pypdf`, `reportlab` — no scipy, no poppler CLI.
 
 ## Usage
 
