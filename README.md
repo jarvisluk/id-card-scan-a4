@@ -1,114 +1,130 @@
 # id-card-scan-a4
 
-把证件照片（PDF 或图片）整理成"扫描件"效果，并按 **1:1 实际尺寸**排到一页 A4 上打印。
+[中文说明](README.zh-CN.md) · **English**
 
-典型场景：手机翻拍的银行卡 / 往来港澳通行证 / 身份证 / 名片 —— 照片有透视、四角露出桌面、
-正反面一冷一暖，直接打印出来又小又脏。
+Turn phone photos of an ID-sized card into a clean, scan-like image and lay both sides out on
+a single A4 page **at 1:1 real size**, ready to print.
 
-## 它做了什么
+Built for the case where a photo is all you have: slight perspective, desk visible at the corners,
+front and back shot under different lighting, and the printout comes out tiny and grubby.
 
-| 步骤 | 做法 |
+## What it does
+
+| Step | How |
 | --- | --- |
-| 取面 | 以画幅为界按标准宽高比（默认 85.6:54）居中裁切，四边内收 0.2 mm 切掉阴影细边 |
-| 透视校正 | 四点透视变换到目标矩形，500 dpi（1685×1063 px） |
-| 白平衡 | 中调灰世界估计光源，修正量**限制在 ±2%**（避免把证件本身的冷色底纹推成暖白） |
-| 对比度 | 按亮度做色阶定位 + 中灰为轴拉伸，按比例回传各通道（保色相）；白场压到 251 保住高光底纹 |
-| 底色对齐 | 统计每张图"纸面底纹色"，把正反面拉到同一目标值（消除一冷一暖） |
-| 圆角 | 套 ID-1 标准圆角（3.18 mm）遮罩，圆角外一律填白 —— 顺带清掉四角露出的桌面 |
-| 排版 | A4 纵向，按真实尺寸 85.6×54 mm 摆放，可上下堆叠或并排 |
+| Crop | Take the frame, center-crop to the standard aspect ratio (85.6:54 by default), inset 0.2 mm to shave off edge shadow |
+| Rectify | 4-point perspective transform to the target rectangle at 500 dpi (1685×1063 px) |
+| White balance | Mid-tone gray-world illuminant estimate, correction **clamped to ±2%** so the card's own cool tint is not pushed to cream |
+| Contrast | Luminance levels (black/white point + mid-gray stretch), scaled back onto RGB to preserve hue; white point capped at 251 to keep highlight detail |
+| Background match | Estimate each side's paper color and align both to one target, so the two sides look like the same card |
+| Corners | ID-1 corner radius (3.18 mm) mask; everything outside is filled white — which also removes desk visible at the corners |
+| Layout | A4 portrait, real size 85.6×54 mm, stacked or side by side |
 
-## 安装
+## Install
 
 ```bash
-cd ~/CodeSpace/id-card-scan-a4
+git clone https://github.com/jarvisluk/id-card-scan-a4.git
+cd id-card-scan-a4
 uv venv && uv pip install -e . pytest
 ```
 
-下面的命令都用 `.venv/bin/idcard-a4`；装了全局/用 `uv run` 的话直接 `idcard-a4` 也行。
+Dependencies: `pillow`, `numpy`, `pypdf`, `reportlab`. No scipy, no poppler CLI.
 
-依赖：`pillow` `numpy` `pypdf` `reportlab`（无 scipy / 无 poppler 命令行依赖）。
-
-## 用法
+## Usage
 
 ```bash
-# 正反面在同一页，正面在上
-.venv/bin/idcard-a4 正面.pdf 反面.pdf -o 输出.pdf
+# front and back on one page, front on top
+.venv/bin/idcard-a4 front.pdf back.pdf -o out.pdf
 
-# 单页 PDF 里正反面各占一页，想让第 2 页排到上面
-.venv/bin/idcard-a4 扫描件.pdf --reverse -o 输出.pdf
+# a single PDF with one side per page: put page 2 on top
+.venv/bin/idcard-a4 scan.pdf --reverse -o out.pdf
 
-# 只是铺到 A4 上（不按实物大小），横向并排
-.venv/bin/idcard-a4 扫描件.pdf --mode fit --layout horizontal -o 输出.pdf
+# just fill the page (not real size), side by side
+.venv/bin/idcard-a4 scan.pdf --mode fit --layout horizontal -o out.pdf
 
-# 拍得比较松、四周有大片桌面：手动给四点（源图像素，左上/右上/右下/左下）
-.venv/bin/idcard-a4 照片.jpg -o 输出.pdf --quad 120,90,1080,60,1090,700,110,730
+# shot with a lot of desk around the card: give the four corners yourself
+# (source pixels, TL / TR / BR / BL)
+.venv/bin/idcard-a4 photo.jpg -o out.pdf --quad 120,90,1080,60,1090,700,110,730
 
-# 排查：把检测到的四边形画出来
-.venv/bin/idcard-a4 照片.jpg -o 输出.pdf --save-quad /tmp/quad
+# sanity check: draw the quad that will be used
+.venv/bin/idcard-a4 photo.jpg -o out.pdf --save-quad /tmp/quad
 ```
 
-### 主要参数
+If the console script is on your `PATH`, use `idcard-a4` instead of `.venv/bin/idcard-a4`.
 
-| 参数 | 默认 | 说明 |
+### Options
+
+| Flag | Default | Meaning |
 | --- | --- | --- |
-| `--size` | `85.6x54` | 证件真实尺寸（mm）；护照等改这里 |
-| `--mode` | `real` | `real` 按真实尺寸 1:1；`fit` 等比缩放到可用纸面 |
-| `--layout` | `vertical` | `vertical` 上下堆叠 / `horizontal` 并排 |
-| `--gap` / `--margin` | `10` / `15` | 间距、页边距（mm） |
-| `--inset` | `0.2` | 四边向内收多少 mm（切掉照片边缘阴影），`0` = 不内收 |
-| `--corner-radius` | `3.18` | 圆角半径 mm，`0` = 不做圆角 |
-| `--wb-clamp` | `0.02` | 白平衡最大修正比例 |
-| `--contrast` | `1.06` | 对比度拉伸强度 |
-| `--reverse` | 关 | 反转页面顺序 |
-| `--no-wb` / `--no-contrast` / `--no-sharpen` / `--no-match-paper` | 关 | 跳过对应步骤 |
-| `--keep-images` / `--save-quad` | — | 保留中间图 / 可视化四边形 |
+| `--size` | `85.6x54` | Real card size in mm (passport, etc.) |
+| `--mode` | `real` | `real` = 1:1 physical size; `fit` = scale to printable area |
+| `--layout` | `vertical` | `vertical` stack / `horizontal` row |
+| `--gap`, `--margin` | `10`, `15` | Gap and page margin in mm |
+| `--inset` | `0.2` | Inset each side by this many mm to cut edge shadow (`0` = off) |
+| `--corner-radius` | `3.18` | Corner radius in mm (`0` = square corners) |
+| `--quad` | — | Manual card corners in source pixels: `x1,y1,...,x4,y4` |
+| `--wb-clamp` | `0.02` | Max white-balance correction ratio |
+| `--contrast` | `1.06` | Contrast stretch strength |
+| `--dpi` | `500` | Render resolution per card in `real` mode |
+| `--reverse` | off | Reverse page order |
+| `--no-wb`, `--no-contrast`, `--no-sharpen`, `--no-match-paper` | off | Skip a step |
+| `--keep-images`, `--save-quad` | — | Keep intermediate images / visualize the quad |
 
-## 打印
+## Printing
 
-必须在打印对话框里选 **"实际大小 / 100%"**，并关闭"缩放以适应页面"。
-否则 1:1 失效 —— 这是物理尺寸，不是版面尺寸。
+Choose **"Actual size / 100%"** in the print dialog and turn off "Fit to page".
+The layout is physical size, not page-relative — any auto-scaling breaks the 1:1.
 
-## 设计取舍
+## Design notes
 
-- **不做自动找边。** 试过纹理分割、区域生长、梯度峰值 + 台阶/平滑度校验：卡片内部的
-  花纹、MRZ 文字、二维码都会伪装成边，稍有偏差就吃掉 1–2 mm 卡面，或把桌面切进来。
-  确定性方案（画幅 + 标准宽高比 + 内收）误差 < 0.5 mm 且永不误判；拍得松时用
-  `--quad` 手动四点，代价低得多。
-- **白平衡限幅 ±2%。** 灰世界会把"证件本身是浅蓝底纹"误当成偏色，把底色推成奶油色。
-- **白场 251 而不是 255。** 保住高光里的底纹纹理，打印出来才像证件而不是白纸。
-- **底色对齐用中值而不是均值。** 证件有大片彩色区域（照片背景、红色国徽），均值会被带偏。
+- **No automatic edge detection.** Texture segmentation, region growing, and gradient peaks with
+  step/smoothness checks were all tried: guilloche patterns, MRZ text and QR codes masquerade as
+  card edges, and a 1–2 mm miss either eats card content or pulls the desk in. The deterministic
+  path (frame + standard aspect + small inset) is off by < 0.5 mm and never misfires; for loose
+  framing use `--quad`. The trade-off is explicit and cheap.
+- **White balance clamped to ±2%.** A plain gray-world treats the card's light blue background as a
+  cast and pushes it to cream/ivory — that is exactly how an earlier version looked yellow.
+- **White point at 251, not 255.** Keeps the guilloche texture in highlights so a printout reads as
+  a card rather than blank paper.
+- **Paper color uses a median, not a mean.** Large colored areas (photo background, red emblem)
+  would drag a mean around.
 
-## 目录结构
+## Data safety
+
+Cards are sensitive. This repository holds **no scans, photos or output files**:
+
+- `.gitignore` ignores `*.pdf`, `*.jpg`, `*.png`, `*.docx`, … plus `samples/`, `out/`, `output/`
+- `.githooks/pre-commit` rejects image/PDF/Office files and text that looks like an ID number or an
+  MRZ line
+- Enable the hook after cloning:
+
+```bash
+git config core.hooksPath .githooks
+```
+
+Deliberately committing redacted or synthetic test data: `git commit --no-verify`.
+
+## Layout
 
 ```
 src/idcard_a4/
-  extract.py   # PDF/图片 → PIL 图像（取内嵌原图，不重新渲染整页）
-  geometry.py  # 取面裁切、透视变换、圆角遮罩
-  color.py     # 白平衡、色阶、纸面底色统计与对齐、锐化
-  layout.py    # A4 排版（reportlab）
-  cli.py       # 命令行
-tests/         # 合成图像回归测试（不依赖任何真实证件数据）
+  extract.py   # PDF / image → PIL image (embedded image, no page re-render)
+  geometry.py  # frame crop, perspective transform, rounded-corner mask
+  color.py     # white balance, levels, paper-color statistics and matching, sharpening
+  layout.py    # A4 placement (reportlab)
+  cli.py       # command line
+tests/         # regression tests on synthetic images only
 ```
 
 ```bash
 .venv/bin/python -m pytest -q
 ```
 
-## 数据安全
+## Scope
 
-证件是敏感数据，仓库里**不放任何扫描件、照片和输出**：
+- Input is a photo or scan of a card, assumed to roughly fill the frame. Loose framing: use `--quad`.
+- No real ID data in the repo; all tests synthesize their own images.
 
-- `.gitignore` 默认忽略 `*.pdf` `*.jpg` `*.png` `*.docx` 等，以及 `samples/` `out/` 目录
-- `.githooks/pre-commit` 会拦截：图片/PDF/Office 文件，以及文本里疑似身份证号、证件 MRZ 号的内容
-- 启用钩子（每人 clone 后执行一次）：
+## License
 
-```bash
-git config core.hooksPath .githooks
-```
-
-确实需要提交脱敏/伪造的测试数据时，`git commit --no-verify` 绕过。
-
-## 备注
-
-- 输入为**翻拍/扫描的证件照片**，默认假设卡片基本顶满画幅；四周留了大片背景请用 `--quad`。
-- 仓库内不含任何真实证件样本，测试全部用合成图像。
+MIT — see [LICENSE](LICENSE).
