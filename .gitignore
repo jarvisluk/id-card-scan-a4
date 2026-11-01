@@ -1,0 +1,15 @@
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+build/
+dist/
+*.egg-info/
+
+# 输出与中间产物
+*.out.pdf
+card-*.jpg
+quad-*.png
+
+# macOS
+.DS_Store
